@@ -1,6 +1,6 @@
 {
-  "name": "吴惊喜不要停",
-  "short_name": "吴惊喜",
+  "name": "体重日记",
+  "short_name": "体重日记",
   "description": "记录体重变化与运动热量消耗的减重助手",
   "start_url": "./index.html",
   "scope": "./",

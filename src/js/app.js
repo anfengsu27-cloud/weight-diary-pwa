@@ -1,5 +1,5 @@
 /**
- * 吴惊喜不要停 - 主控制器 v1.3
+ * 体重日记 - 主控制器 v1.3
  */
 (function () {
   "use strict";
@@ -171,7 +171,7 @@
       viewDashboard: "首页", viewWeight: "体重", viewDiet: "饮食",
       viewExercise: "运动", viewTrends: "趋势", viewSettings: "设置"
     };
-    el.title.textContent = titles[viewId] || "吴惊喜不要停";
+    el.title.textContent = titles[viewId] || "体重日记";
     refreshView(viewId);
   }
 
@@ -684,7 +684,7 @@
     const blob = new Blob([data], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "吴惊喜不要停_备份_" + today() + ".json";
+    a.href = url; a.download = "体重日记_备份_" + today() + ".json";
     a.click(); URL.revokeObjectURL(url); showToast("数据已导出");
   });
 
