@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#00BFA6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="吴惊喜不要停 - 记录体重变化与运动热量消耗">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icons/icon.svg">
+  <title>吴惊喜不要停</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app-container" id="app">
+  <!-- Header -->
+  <header class="app-header">
+    <h1 id="viewTitle">首页</h1>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="header-date" id="headerDate"></span>
+      <button class="btn-icon" id="settingsGear" title="设置" style="color:var(--text-secondary)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="app-main" id="appMain">
+    <!-- Dashboard View -->
+    <section class="view active" id="viewDashboard">
+      <div class="dash-greeting" id="greeting">早上好 👋</div>
+      <div class="dash-sub" id="dashSub">今天也要加油！</div>
+
+      <div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="stat-item">
+          <div class="num green" id="statDays">0</div>
+          <div class="label">记录天数</div>
+        </div>
+        <div class="stat-item">
+          <div class="num blue" id="statLowest">--</div>
+          <div class="label">最低体重</div>
+        </div>
+        <div class="stat-item">
+          <div class="num red" id="statCalIn">0</div>
+          <div class="label">摄入</div>
+        </div>
+        <div class="stat-item">
+          <div class="num red" id="statCalOut">0</div>
+          <div class="label">消耗</div>
+        </div>
+      </div>
+
+      <!-- 热量结余 -->
+      <div class="card" style="padding:12px 16px;margin-bottom:12px">
+        <div class="flex-between">
+          <span style="font-size:13px;font-weight:600">今日热量结余</span>
+          <span id="calBalance" style="font-size:20px;font-weight:800">0 kcal</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          今日体重
+        </div>
+        <div id="todayWeightEntries">
+          <div class="dash-weight-card" style="margin-bottom:12px">
+            <div>
+              <span class="big-num" id="todayWeightDisplay">--</span>
+              <span class="big-unit">kg</span>
+            </div>
+            <div class="dash-info">
+              <div class="label">较目标</div>
+              <div class="change" id="weightDiff">--</div>
+              <div class="label" style="margin-top:4px">已减</div>
+              <div class="change down" id="totalLost">--</div>
+            </div>
+            <div>
+              <canvas id="progressRingWeight" width="100" height="100"></canvas>
+            </div>
+          </div>
+          <div id="todayWeightRecordList"></div>
+        </div>
+        <div class="log-today-bar">
+          <input type="number" id="quickWeightInput" placeholder="输入体重" step="0.1" min="30" max="200">
+          <input type="time" id="quickWeightTime" style="width:auto;flex:none;padding:6px 8px;font-size:14px">
+          <button class="btn btn-primary btn-sm" id="quickWeightBtn">记录</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          最近记录
+        </div>
+        <div id="recentEntries"><div class="empty-state"><p>还没有记录，开始今天的第一条吧！</p></div></div>
+      </div>
+    </section>
+
+    <!-- Weight View -->
+    <section class="view" id="viewWeight">
+      <div class="card">
+        <div class="card-title">记录体重</div>
+        <div class="form-row-3">
+          <div class="form-group"><label>日期</label><input type="date" id="weightDate"></div>
+          <div class="form-group"><label>时间</label><input type="time" id="weightTime"></div>
+          <div class="form-group"><label>体重 (kg)</label><input type="number" id="weightValue" step="0.1" min="30" max="200" placeholder="70.0"></div>
+        </div>
+        <div class="form-group"><label>备注（可选）</label><input type="text" id="weightNotes" placeholder="如：晨起空腹、饭后等"></div>
+        <button class="btn btn-primary btn-block" id="weightSubmit">保存记录</button>
+      </div>
+      <div class="card">
+        <div class="flex-between">
+          <div class="card-title" style="margin-bottom:0">体重历史</div>
+          <span class="text-muted" id="weightCount"></span>
+        </div>
+      </div>
+      <div id="weightList" class="entry-list"></div>
+    </section>
+
+    <!-- Diet View -->
+    <section class="view" id="viewDiet">
+      <div class="card">
+        <div class="card-title">记录饮食</div>
+        <div class="form-row-3">
+          <div class="form-group"><label>日期</label><input type="date" id="dietDate"></div>
+          <div class="form-group"><label>时间</label><input type="time" id="dietTime"></div>
+          <div class="form-group"><label>餐别</label><select id="dietMealType"></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>食物名称</label><input type="text" id="dietFood" placeholder="如：全麦面包 2片"></div>
+          <div class="form-group"><label>重量 (g)</label><input type="number" id="dietWeight" min="0" placeholder="如：150"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>热量 (kcal)</label><input type="number" id="dietCalories" min="0" placeholder="自动预估或手动输入"></div>
+          <div class="form-group">
+            <label>热量预估</label>
+            <div class="calorie-estimate" id="dietCalorieHint">输入食物和重量后自动预估</div>
+          </div>
+        </div>
+        <div class="form-group"><label>备注（可选）</label><input type="text" id="dietNotes" placeholder="如：便利店买的"></div>
+        <button class="btn btn-primary btn-block" id="dietSubmit">保存记录</button>
+      </div>
+      <div class="card">
+        <div class="flex-between">
+          <div class="card-title" style="margin-bottom:0">饮食历史</div>
+          <span class="text-muted" id="dietCount"></span>
+        </div>
+      </div>
+      <div id="dietList" class="entry-list"></div>
+    </section>
+
+    <!-- Exercise View -->
+    <section class="view" id="viewExercise">
+      <div class="card">
+        <div class="card-title">记录运动</div>
+        <div class="form-row-3">
+          <div class="form-group"><label>日期</label><input type="date" id="exDate"></div>
+          <div class="form-group"><label>时间</label><input type="time" id="exTime"></div>
+          <div class="form-group"><label>运动类型</label><select id="exType"></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>时长（分钟）</label><input type="number" id="exDuration" min="1" max="600" placeholder="30"></div>
+          <div class="form-group" id="exCalGroup"><label>消耗热量 (kcal)</label><input type="number" id="exCalories" min="0" placeholder="自动计算" readonly></div>
+        </div>
+        <div class="form-group"><label>备注（可选）</label><input type="text" id="exNotes" placeholder="如：晨跑、健身房等"></div>
+        <button class="btn btn-primary btn-block" id="exSubmit">保存记录</button>
+      </div>
+      <div class="card">
+        <div class="flex-between">
+          <div class="card-title" style="margin-bottom:0">运动历史</div>
+          <span class="text-muted" id="exCount"></span>
+        </div>
+      </div>
+      <div id="exList" class="entry-list"></div>
+    </section>
+
+    <!-- Trends View -->
+    <section class="view" id="viewTrends">
+      <div class="card">
+        <div class="card-title">体重趋势</div>
+        <div class="period-tabs" id="weightPeriodTabs">
+          <button class="period-tab active" data-period="7d">7天</button>
+          <button class="period-tab" data-period="30d">30天</button>
+          <button class="period-tab" data-period="all">全部</button>
+        </div>
+        <div class="chart-container"><canvas id="weightChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">运动消耗</div>
+        <div class="period-tabs" id="calPeriodTabs">
+          <button class="period-tab active" data-period="7d">7天</button>
+          <button class="period-tab" data-period="30d">30天</button>
+          <button class="period-tab" data-period="all">全部</button>
+        </div>
+        <div class="chart-container"><canvas id="calChart"></canvas></div>
+      </div>
+      <div class="ring-grid">
+        <div class="ring-item">
+          <canvas id="ringWeightProgress" width="120" height="120"></canvas>
+          <div class="ring-label">减重进度</div>
+        </div>
+        <div class="ring-item">
+          <canvas id="ringCalProgress" width="120" height="120"></canvas>
+          <div class="ring-label">今日运动目标</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Settings View -->
+    <section class="view" id="viewSettings">
+      <div class="card">
+        <div class="card-title">目标设定</div>
+        <div class="setting-item">
+          <div><div class="label">目标体重</div><div class="desc">最终想要达到的体重</div></div>
+          <input type="number" id="setTargetWeight" step="0.1" min="30" max="200">
+        </div>
+        <div class="setting-item">
+          <div><div class="label">起始体重</div><div class="desc">开始减肥时的体重</div></div>
+          <input type="number" id="setStartWeight" step="0.1" min="30" max="200">
+        </div>
+        <div class="setting-item">
+          <div><div class="label">身高 (cm)</div><div class="desc">用于计算 BMI</div></div>
+          <input type="number" id="setHeight" min="100" max="250">
+        </div>
+        <div class="setting-item">
+          <div><div class="label">日消耗目标</div><div class="desc">每日运动消耗目标（千卡）</div></div>
+          <input type="number" id="setCalTarget" min="0" max="5000">
+        </div>
+        <div class="setting-item">
+          <div><div class="label">昵称</div><div class="desc">个性化称呼</div></div>
+          <input type="text" id="setName" placeholder="如：吴惊喜">
+        </div>
+        <button class="btn btn-primary btn-block mt-8" id="settingsSave">保存设置</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">界面主题</div>
+        <div class="setting-item">
+          <div class="label">背景风格</div>
+          <select id="bgTheme" style="width:120px">
+            <option value="default">默认简洁</option>
+            <option value="dark">深色模式</option>
+            <option value="gradient1">渐变蓝紫</option>
+            <option value="gradient2">渐变暖橙</option>
+            <option value="gradient3">渐变星空</option>
+            <option value="gradient4">渐变樱花</option>
+          </select>
+        </div>
+        <div class="setting-item" style="flex-direction:column;align-items:stretch;gap:8px">
+          <div class="label">自定义背景图片</div>
+          <div class="desc">上传一张图片作为背景（建议浅色/模糊图片效果更佳）</div>
+          <div id="bgImagePreview" style="width:100%;height:80px;border-radius:8px;background:#EEE;display:flex;align-items:center;justify-content:center;font-size:12px;color:#999;background-size:cover;background-position:center">暂无图片</div>
+          <div class="data-actions">
+            <button class="btn btn-secondary btn-sm" id="bgUploadBtn">选择图片</button>
+            <button class="btn btn-secondary btn-sm" id="bgClearBtn">清除图片</button>
+          </div>
+          <input type="file" id="bgFileInput" accept="image/*" style="display:none">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">数据管理</div>
+        <div class="text-muted mb-8">所有数据存储在本地浏览器，安全不泄漏。</div>
+        <div class="data-actions">
+          <button class="btn btn-secondary btn-sm" id="exportBtn">导出数据</button>
+          <button class="btn btn-secondary btn-sm" id="importBtn">导入数据</button>
+        </div>
+        <input type="file" id="importFile" accept=".json" style="display:none">
+        <button class="btn btn-sm btn-danger btn-block mt-8" id="clearBtn">清除所有数据</button>
+      </div>
+
+      <div class="about-section">
+        <strong>吴惊喜不要停 v1.3</strong><br>
+        减肥路上，惊喜不停！<br>
+        所有数据仅存储在你的设备上
+      </div>
+    </section>
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="app-nav" id="appNav">
+    <button class="nav-item active" data-view="viewDashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      <span>首页</span>
+    </button>
+    <button class="nav-item" data-view="viewWeight">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      <span>体重</span>
+    </button>
+    <button class="nav-item" data-view="viewDiet">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+      <span>饮食</span>
+    </button>
+    <button class="nav-item" data-view="viewExercise">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+      <span>运动</span>
+    </button>
+    <button class="nav-item" data-view="viewTrends">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      <span>趋势</span>
+    </button>
+  </nav>
+</div>
+
+<!-- Modal template (hidden) -->
+<template id="modalTemplate">
+  <div class="modal-overlay" onclick="if(event.target===this)this.remove()">
+    <div class="modal-box">
+      <h3 id="modalTitle"></h3>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+</template>
+
+<script src="js/storage.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
