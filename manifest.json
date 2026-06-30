@@ -1,0 +1,19 @@
+{
+  "name": "吴惊喜不要停",
+  "short_name": "吴惊喜",
+  "description": "记录体重变化与运动热量消耗的减重助手",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F5F7FA",
+  "theme_color": "#00BFA6",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
