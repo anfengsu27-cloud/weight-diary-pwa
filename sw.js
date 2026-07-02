@@ -1,4 +1,4 @@
-const APP_VERSION = "v1.3.1";
+const APP_VERSION = "v1.4.0";
 const CACHE_NAME = "weight-diary-" + APP_VERSION;
 const ASSETS = [
   "./",
@@ -8,7 +8,9 @@ const ASSETS = [
   "./js/storage.js",
   "./js/charts.js",
   "./js/app.js",
-  "./assets/icons/icon.svg"
+  "./assets/icons/icon.svg",
+  "./assets/icons/icon-192.png",
+  "./assets/icons/icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {

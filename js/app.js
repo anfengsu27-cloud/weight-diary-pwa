@@ -16,8 +16,6 @@
     todayWeight: $("#todayWeightDisplay"),
     todayWeightRecordList: $("#todayWeightRecordList"),
     weightDiff: $("#weightDiff"), totalLost: $("#totalLost"),
-    quickWeightInput: $("#quickWeightInput"),
-    quickWeightTime: $("#quickWeightTime"), quickWeightBtn: $("#quickWeightBtn"),
     statDays: $("#statDays"), statLowest: $("#statLowest"),
     statCalIn: $("#statCalIn"), statCalOut: $("#statCalOut"),
     calBalance: $("#calBalance"),
@@ -33,12 +31,13 @@
     dietMealType: $("#dietMealType"), dietFood: $("#dietFood"),
     dietWeight: $("#dietWeight"), dietCalories: $("#dietCalories"),
     dietCalorieHint: $("#dietCalorieHint"), dietNotes: $("#dietNotes"),
+    dietCalorieQuick: $("#dietCalorieQuick"),
     dietSubmit: $("#dietSubmit"), dietList: $("#dietList"),
     dietCount: $("#dietCount"),
 
     exDate: $("#exDate"), exTime: $("#exTime"), exType: $("#exType"),
     exDuration: $("#exDuration"), exCalories: $("#exCalories"),
-    exCalGroup: $("#exCalGroup"), exNotes: $("#exNotes"),
+    exCalGroup: $("#exCalGroup"), exAutoCalBtn: $("#exAutoCalBtn"), exNotes: $("#exNotes"),
     exSubmit: $("#exSubmit"), exList: $("#exList"), exCount: $("#exCount"),
 
     weightChart: $("#weightChart"), calChart: $("#calChart"),
@@ -58,7 +57,9 @@
   };
 
   let currentView = "viewDashboard";
+  let currentDate = today();
   let editWeightId = null, editExId = null, editDietId = null;
+  let exCaloriesManuallyEdited = false;
 
   const foodCaloriesPer100g = [
     { keywords: ["苹果", "apple"], kcal: 52 },
@@ -95,8 +96,52 @@
   ];
 
   function now() { return new Date(); }
-  function today() { return now().toISOString().slice(0, 10); }
+  function localDateString(date = now()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + d;
+  }
+  function today() { return localDateString(); }
   function currentTime() { return now().toTimeString().slice(0, 5); }
+
+  function daysBetween(start, end) {
+    const a = new Date(start + "T00:00:00");
+    const b = new Date(end + "T00:00:00");
+    return Math.floor((b - a) / 86400000);
+  }
+
+  function getNaturalRecordDays() {
+    const dates = [
+      ...DB.getWeights().map((item) => item.date),
+      ...DB.getDiets().map((item) => item.date),
+      ...DB.getExercises().map((item) => item.date)
+    ].filter(Boolean).sort();
+    if (dates.length === 0) return 0;
+    return Math.max(1, daysBetween(dates[0], today()) + 1);
+  }
+
+  function syncDateFieldsForNewDay(oldDate, newDate) {
+    const fields = [
+      { input: el.weightDate, editing: editWeightId },
+      { input: el.dietDate, editing: editDietId },
+      { input: el.exDate, editing: editExId }
+    ];
+    fields.forEach(({ input, editing }) => {
+      if (!input || editing) return;
+      if (!input.value || input.value === oldDate) input.value = newDate;
+    });
+    if (el.headerDate) el.headerDate.textContent = formatDate(newDate);
+  }
+
+  function checkNaturalDayChange() {
+    const nextDate = today();
+    if (nextDate === currentDate) return;
+    const oldDate = currentDate;
+    currentDate = nextDate;
+    syncDateFieldsForNewDay(oldDate, nextDate);
+    refreshView(currentView);
+  }
 
   function showToast(msg) {
     const old = document.querySelector(".toast");
@@ -160,6 +205,27 @@
         el.bgImagePreview.textContent = "暂无图片";
       }
     }
+  }
+
+  function resizeImageForBackground(file, cb) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxSide = 1200;
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        cb(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = () => showToast("背景图读取失败");
+      img.src = e.target.result;
+    };
+    reader.onerror = () => showToast("背景图读取失败");
+    reader.readAsDataURL(file);
   }
 
   // ---- Navigation ----
@@ -257,7 +323,7 @@
     Charts.drawProgressRing(el.progressRingWeight,
       Math.max(0, progressPct), 100, targetW ? "目标 " + targetW + "kg" : "");
 
-    el.statDays.textContent = weights.length;
+    el.statDays.textContent = getNaturalRecordDays();
     el.statLowest.textContent = weights.length > 0
       ? Math.min(...weights.map((w) => w.weight)).toFixed(1) + "kg" : "--";
 
@@ -301,17 +367,6 @@
       }).join("") + '</div>';
     }
   }
-
-  // 快速记体重
-  el.quickWeightBtn.addEventListener("click", () => {
-    const val = parseFloat(el.quickWeightInput.value);
-    if (!val || val < 20 || val > 250) { showToast("请输入有效体重 (20-250kg)"); return; }
-    const t = el.quickWeightTime.value || currentTime();
-    DB.addWeight({ date: today(), time: t, weight: val });
-    showToast("已记录 " + val.toFixed(1) + " kg (" + t + ")");
-    el.quickWeightInput.value = "";
-    renderDashboard();
-  });
 
   // ==================== WEIGHT ====================
   el.weightDate.value = today(); el.weightTime.value = currentTime();
@@ -390,7 +445,7 @@
     const weight = parseFloat(el.dietWeight.value) || 0;
     const food = findFoodCalorie(foodName);
     if (!foodName && !weight) {
-      el.dietCalorieHint.textContent = "输入食物和重量后自动预估";
+      el.dietCalorieHint.textContent = "重量可选，热量可以直接手动填写";
       el.dietCalorieHint.className = "calorie-estimate";
       return;
     }
@@ -400,7 +455,7 @@
       return;
     }
     if (!weight) {
-      el.dietCalorieHint.textContent = "已识别：" + food.keywords[0] + "，请输入重量";
+      el.dietCalorieHint.textContent = "已识别：" + food.keywords[0] + "，可填估计重量自动算，也可直接填热量";
       el.dietCalorieHint.className = "calorie-estimate";
       return;
     }
@@ -412,6 +467,15 @@
 
   el.dietFood.addEventListener("input", updateDietCalorieEstimate);
   el.dietWeight.addEventListener("input", updateDietCalorieEstimate);
+  if (el.dietCalorieQuick) {
+    el.dietCalorieQuick.querySelectorAll("[data-cal]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        el.dietCalories.value = btn.dataset.cal;
+        el.dietCalorieHint.textContent = "已手动估算 " + btn.dataset.cal + " kcal";
+        el.dietCalorieHint.className = "calorie-estimate active";
+      });
+    });
+  }
 
   el.dietSubmit.addEventListener("click", () => {
     const date = el.dietDate.value, t = el.dietTime.value || currentTime();
@@ -422,6 +486,7 @@
     const calories = parseInt(el.dietCalories.value) || 0;
     const notes = el.dietNotes.value.trim();
     if (!date || !foodName) { showToast("请填写日期和食物名称"); return; }
+    if (!calories) { showToast("请填写估算热量"); return; }
     if (editDietId) {
       DB.updateDiet(editDietId, { date, time: t, mealType, mealTypeName, foodName, weightGrams, calories, notes });
       showToast("已更新");
@@ -496,18 +561,18 @@
   el.exDate.value = today(); el.exTime.value = currentTime();
 
   el.exType.addEventListener("change", () => {
-    if (el.exType.value === "custom") {
-      el.exCalories.readOnly = false; el.exCalories.placeholder = "手动输入"; el.exCalories.value = "";
-    } else {
-      el.exCalories.readOnly = true; el.exCalories.placeholder = "自动计算"; el.exCalories.value = "";
-      updateCalPreview();
-    }
+    exCaloriesManuallyEdited = false;
+    el.exCalories.placeholder = el.exType.value === "custom" ? "手动输入" : "自动计算，可手动改";
+    updateCalPreview(true);
   });
-  el.exDuration.addEventListener("input", updateCalPreview);
+  el.exDuration.addEventListener("input", () => updateCalPreview(false));
+  el.exCalories.addEventListener("input", () => { exCaloriesManuallyEdited = true; });
+  el.exAutoCalBtn.addEventListener("click", () => updateCalPreview(true));
 
-  function updateCalPreview() {
+  function updateCalPreview(force = false) {
     const typeId = el.exType.value;
     if (typeId === "custom") return;
+    if (exCaloriesManuallyEdited && !force) return;
     const t = DB.exerciseTypes.find((et) => et.id === typeId);
     if (!t || !t.met) { el.exCalories.value = ""; return; }
     const dur = parseInt(el.exDuration.value) || 0;
@@ -533,6 +598,7 @@
       showToast("已保存");
     }
     el.exDuration.value = ""; el.exCalories.value = ""; el.exNotes.value = "";
+    exCaloriesManuallyEdited = false;
     renderExList();
   });
 
@@ -561,8 +627,7 @@
         el.exType.value = item.typeId; el.exDuration.value = item.duration;
         el.exCalories.value = item.calories; el.exNotes.value = item.notes || "";
         el.exSubmit.textContent = "更新记录"; el.main.scrollTop = 0;
-        if (item.typeId === "custom") el.exCalories.readOnly = false;
-        el.exType.dispatchEvent(new Event("change"));
+        exCaloriesManuallyEdited = true;
       });
     });
     el.exList.querySelectorAll("[data-edel]").forEach((btn) => {
@@ -581,6 +646,7 @@
       c.addEventListener("click", () => {
         editExId = null; el.exDuration.value = ""; el.exCalories.value = "";
         el.exNotes.value = ""; el.exSubmit.textContent = "保存记录"; c.remove();
+        exCaloriesManuallyEdited = false;
       });
       el.exList.parentElement.appendChild(c);
     }
@@ -656,17 +722,18 @@
   el.bgFileInput.addEventListener("change", () => {
     const file = el.bgFileInput.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target.result;
+    resizeImageForBackground(file, (dataUrl) => {
       const s = DB.getSettings();
-      DB.saveSettings({ ...s, bgImage: dataUrl });
-      applyBgImage(dataUrl);
-      el.bgTheme.value = "default";
-      applyBgTheme("default");
-      showToast("背景图片已设置");
-    };
-    reader.readAsDataURL(file);
+      try {
+        DB.saveSettings({ ...s, bgImage: dataUrl, bgTheme: "default" });
+        applyBgTheme("default");
+        applyBgImage(dataUrl);
+        el.bgTheme.value = "default";
+        showToast("背景图片已设置");
+      } catch {
+        showToast("图片过大，请换一张较小的图");
+      }
+    });
     el.bgFileInput.value = "";
   });
 
@@ -717,6 +784,12 @@
   const initSettings = DB.getSettings();
   if (initSettings.bgTheme) applyBgTheme(initSettings.bgTheme);
   if (initSettings.bgImage) applyBgImage(initSettings.bgImage);
+  syncDateFieldsForNewDay("", currentDate);
+  setInterval(checkNaturalDayChange, 60000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) checkNaturalDayChange();
+  });
+  window.addEventListener("focus", checkNaturalDayChange);
 
   switchView("viewDashboard");
 })();

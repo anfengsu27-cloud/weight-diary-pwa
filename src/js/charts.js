@@ -39,8 +39,13 @@ const Charts = {
     else if (period === "30d") cutoff.setDate(now.getDate() - 30);
     else cutoff.setFullYear(now.getFullYear() - 5);
 
-    const filtered = data.filter((d) => new Date(d.date) >= cutoff)
-      .sort((a, b) => a.date.localeCompare(b.date));
+    const dayMinMap = {};
+    data.filter((d) => new Date(d.date) >= cutoff).forEach((d) => {
+      if (!dayMinMap[d.date] || d.weight < dayMinMap[d.date].weight) {
+        dayMinMap[d.date] = { date: d.date, weight: d.weight };
+      }
+    });
+    const filtered = Object.values(dayMinMap).sort((a, b) => a.date.localeCompare(b.date));
 
     if (filtered.length < 1) {
       ctx.fillStyle = "#9CA3AF";
@@ -100,8 +105,8 @@ const Charts = {
     ctx.lineJoin = "round";
     ctx.stroke();
 
-    // 圆点
-    points.forEach((p) => {
+    // 圆点和数值
+    points.forEach((p, i) => {
       ctx.beginPath();
       ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
       ctx.fillStyle = "#00BFA6";
@@ -111,6 +116,10 @@ const Charts = {
       ctx.strokeStyle = "rgba(0, 191, 166, 0.25)";
       ctx.lineWidth = 3;
       ctx.stroke();
+      ctx.fillStyle = "#1A1A2E";
+      ctx.font = "bold 10px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(filtered[i].weight.toFixed(1), p.x, p.y - 10);
     });
 
     // 日期标签（最多显示 6 个）
@@ -195,34 +204,52 @@ const Charts = {
       ctx.fillText(Math.round(maxCal - (maxCal * i) / 3), pad.left - 6, y + 4);
     }
 
-    // 柱状图
-    const barW = Math.min(36, (cw / days.length) * 0.65);
-    const gap = cw / days.length;
-    days.forEach((date, i) => {
-      const val = dayMap[date];
-      const h = (val / maxCal) * ch;
-      const x = pad.left + i * gap + (gap - barW) / 2;
-      const y = pad.top + ch - h;
+    const xStep = cw / Math.max(days.length - 1, 1);
+    const points = days.map((date, i) => ({
+      date,
+      val: dayMap[date],
+      x: pad.left + i * xStep,
+      y: pad.top + ch - (dayMap[date] / maxCal) * ch
+    }));
 
-      // 柱
-      const grad = ctx.createLinearGradient(x, y, x, pad.top + ch);
-      grad.addColorStop(0, "#FF6B6B");
-      grad.addColorStop(1, "#FF8E8E");
-      ctx.fillStyle = grad;
+    const grad = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
+    grad.addColorStop(0, "rgba(255, 107, 107, 0.18)");
+    grad.addColorStop(1, "rgba(255, 107, 107, 0.01)");
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, pad.top + ch);
+    points.forEach((p) => ctx.lineTo(p.x, p.y));
+    ctx.lineTo(points[points.length - 1].x, pad.top + ch);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+    ctx.strokeStyle = "#FF6B6B";
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = "round";
+    ctx.stroke();
+
+    points.forEach((p) => {
       ctx.beginPath();
-      ctx.roundRect(x, y, barW, h, [3, 3, 0, 0]);
+      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = "#FF6B6B";
       ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255, 107, 107, 0.25)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
 
-      // 数值
       ctx.fillStyle = "#FF6B6B";
       ctx.font = "9px system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(val + "kcal", x + barW / 2, y - 5);
+      ctx.fillText(p.val + "kcal", p.x, p.y - 10);
 
-      // 日期
       ctx.fillStyle = "#9CA3AF";
       ctx.font = "9px system-ui, sans-serif";
-      ctx.fillText(date.slice(5), x + barW / 2, H - 8);
+      ctx.fillText(p.date.slice(5), p.x, H - 8);
     });
   },
 

@@ -8,8 +8,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="description" content="体重日记 - 记录体重变化与运动热量消耗">
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/icons/icon.svg">
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
   <title>体重日记</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -36,7 +36,7 @@
       <div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">
         <div class="stat-item">
           <div class="num green" id="statDays">0</div>
-          <div class="label">记录天数</div>
+          <div class="label">自然日</div>
         </div>
         <div class="stat-item">
           <div class="num blue" id="statLowest">--</div>
@@ -83,11 +83,6 @@
           </div>
           <div id="todayWeightRecordList"></div>
         </div>
-        <div class="log-today-bar">
-          <input type="number" id="quickWeightInput" placeholder="输入体重" step="0.1" min="30" max="200">
-          <input type="time" id="quickWeightTime" style="width:auto;flex:none;padding:6px 8px;font-size:14px">
-          <button class="btn btn-primary btn-sm" id="quickWeightBtn">记录</button>
-        </div>
       </div>
 
       <div class="card">
@@ -131,14 +126,20 @@
         </div>
         <div class="form-row">
           <div class="form-group"><label>食物名称</label><input type="text" id="dietFood" placeholder="如：全麦面包 2片"></div>
-          <div class="form-group"><label>重量 (g)</label><input type="number" id="dietWeight" min="0" placeholder="如：150"></div>
+          <div class="form-group"><label>估计重量 (g，可选)</label><input type="number" id="dietWeight" min="0" placeholder="可不填"></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>热量 (kcal)</label><input type="number" id="dietCalories" min="0" placeholder="自动预估或手动输入"></div>
+          <div class="form-group"><label>热量 (kcal)</label><input type="number" id="dietCalories" min="0" placeholder="手动估算填写"></div>
           <div class="form-group">
             <label>热量预估</label>
-            <div class="calorie-estimate" id="dietCalorieHint">输入食物和重量后自动预估</div>
+            <div class="calorie-estimate" id="dietCalorieHint">重量可选，热量可以直接手动填写</div>
           </div>
+        </div>
+        <div class="calorie-quick-row" id="dietCalorieQuick">
+          <button type="button" data-cal="100">100</button>
+          <button type="button" data-cal="200">200</button>
+          <button type="button" data-cal="300">300</button>
+          <button type="button" data-cal="500">500</button>
         </div>
         <div class="form-group"><label>备注（可选）</label><input type="text" id="dietNotes" placeholder="如：便利店买的"></div>
         <button class="btn btn-primary btn-block" id="dietSubmit">保存记录</button>
@@ -163,8 +164,9 @@
         </div>
         <div class="form-row">
           <div class="form-group"><label>时长（分钟）</label><input type="number" id="exDuration" min="1" max="600" placeholder="30"></div>
-          <div class="form-group" id="exCalGroup"><label>消耗热量 (kcal)</label><input type="number" id="exCalories" min="0" placeholder="自动计算" readonly></div>
+          <div class="form-group" id="exCalGroup"><label>消耗热量 (kcal)</label><input type="number" id="exCalories" min="0" placeholder="自动计算，可手动改"></div>
         </div>
+        <button class="btn btn-secondary btn-sm btn-block" id="exAutoCalBtn" type="button">按当前运动重新估算热量</button>
         <div class="form-group"><label>备注（可选）</label><input type="text" id="exNotes" placeholder="如：晨跑、健身房等"></div>
         <button class="btn btn-primary btn-block" id="exSubmit">保存记录</button>
       </div>
@@ -273,7 +275,7 @@
       </div>
 
       <div class="about-section">
-        <strong>体重日记 v1.3.1</strong><br>
+        <strong>体重日记 v1.4.0</strong><br>
         减肥路上，惊喜不停！<br>
         所有数据仅存储在你的设备上
       </div>

@@ -225,6 +225,26 @@ textarea { resize: none; min-height: 60px; }
 .calorie-estimate.muted {
   background: #F8FAFC;
 }
+.calorie-quick-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: -2px 0 12px;
+}
+.calorie-quick-row button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #F8FAFC;
+  color: var(--text-secondary);
+  padding: 8px 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+.calorie-quick-row button:active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
 
 .btn {
   display: inline-flex;
@@ -670,11 +690,26 @@ textarea { resize: none; min-height: 60px; }
 
 /* ============ Background Image ============ */
 .app-container.has-bg-image {
-  background: none !important;
-  background-image: var(--bg-image-url) !important;
-  background-size: cover !important;
-  background-position: center !important;
-  background-attachment: fixed !important;
+  background: var(--bg) !important;
+  overflow: hidden;
+}
+.app-container.has-bg-image::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--bg-image-url);
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+.app-container.has-bg-image .app-header,
+.app-container.has-bg-image .app-main,
+.app-container.has-bg-image .app-nav {
+  position: relative;
+  z-index: 1;
+}
+.app-container.has-bg-image .app-main {
+  background: transparent;
 }
 .app-container.has-bg-image .app-header {
   background: rgba(255,255,255,0.15);

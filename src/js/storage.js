@@ -152,7 +152,7 @@ const DB = {
     const list = this.getExercises().reverse();
     const idx = list.findIndex((e) => e.id === id);
     if (idx > -1) {
-      if (data.typeId && data.typeId !== "custom") {
+      if ((!data.calories || data.calories <= 0) && data.typeId && data.typeId !== "custom") {
         const settings = this.getSettings();
         const t = this.exerciseTypes.find((et) => et.id === data.typeId);
         if (t && t.met) {
